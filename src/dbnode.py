@@ -32,12 +32,12 @@ class DbNode():
 		self.add_myself_to_zookeeper()
 		DbNode.zk.add_listener(DbNode.connection_listener)
 		DbNode.zk.start()
-		DbNode.logger.debug(DbNode.constants.SERVER_PREFIX + DbNode.constants.MESSAGE_CONNECTED + "with 127.0.0.1:2181")
+		print(DbNode.constants.SERVER_PREFIX + DbNode.constants.MESSAGE_CONNECTED + "with 127.0.0.1:2181")
 		self.add_myself_to_zookeeper()
 	
 	@staticmethod
 	def print_error(e):
-		DbNode.logger.debug(DbNode.constants.ERROR_PREFIX + e.__str__())
+		print(DbNode.constants.ERROR_PREFIX + e.__str__())
 
 	def add_myself_to_zookeeper(self):
 		hostname = socket.gethostname()
@@ -46,10 +46,10 @@ class DbNode():
 			node_data = {'ip' : ip}
 			DbNode.zk.ensure_path("/nodes")
 			DbNode.zk.create("/nodes/node",str.encode(json.dumps(node_data)), ephemeral=True, sequence=True)
-			DbNode.logger.debug('Added myself to /nodes, children list:')
+			print('Added myself to /nodes, children list:')
 			child_node_list = DbNode.zk.get_children('/nodes')
 			if child_node_list:
-				DbNode.logger.debug('subnode list:{}'.format(child_node_list))
+				print('subnode list:{}'.format(child_node_list))
 		except Exception as e:
 			DbNode.print_error(e)
 		pass
@@ -58,11 +58,11 @@ class DbNode():
 	def connection_listener(state):
 
 		if state == KazooState.LOST:
-			DbNode.logger.debug('session lost')
+			print('session lost')
 		elif state == KazooState.SUSPENDED:
-			DbNode.logger.debug('session suspended')
+			print('session suspended')
 		else:
-			DbNode.logger.debug('running in state {}'.format(state))
+			print('running in state {}'.format(state))
 
 if __name__ == "__main__":
 	dbnode = DbNode()

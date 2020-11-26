@@ -1,5 +1,0 @@
-[2020-11-25 10:59:36,497] [ERROR] Connection has been closed print_error:40
-[2020-11-25 10:59:36,511] running in state CONNECTED connection_listener:65
-[2020-11-25 10:59:36,511] [Server] Connection successfully ESTABLISHED with 127.0.0.1:2181 __init__:35
-[2020-11-25 10:59:36,526] Added myself to /nodes, children list: add_myself_to_zookeeper:49
-[2020-11-25 10:59:36,528] subnode list:['node0000000014'] add_myself_to_zookeeper:52
