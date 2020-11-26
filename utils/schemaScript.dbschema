@@ -1,0 +1,19 @@
+Table User {
+    isAdmin boolean
+    email varchar [primary key]
+    cartId varchar    
+}
+
+Table Cart {
+    id varchar [primary key]
+    product_ids array
+}
+
+Table Product {
+    id varchar [primary key]
+    name varchar
+    quantity integer
+}
+
+Ref: User.cartId > Cart.id
+Ref: Cart.product_ids > Product.id
