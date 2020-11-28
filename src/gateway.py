@@ -81,6 +81,7 @@ class Gateway():
 			crush_map_children.append(Gateway.constants.CRUSH_MAP_CHILDREN_NODE_FMT.format(i, -2-i, i, children[i]))
 		crush_map = json.loads(Gateway.constants.CRUSH_MAP_FMT.format(','.join(crush_map_children)))
 		# crush_map =	Gateway.constants.DEFAULT_CRUSH_MAP
+		print(crush_map)
 		if len(crush_map['trees'][0]['children']) == 0:
 			return
 		Gateway.crush_object.parse(crush_map)
