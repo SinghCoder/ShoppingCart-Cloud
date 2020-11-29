@@ -9,6 +9,9 @@ import requests
 from crush import Crush
 from gateway import Gateway
 
+from hashlib import md5
+from struct import unpack
+
 app = Flask(__name__)
 
 product_db = TinyDB('product_db.json')
@@ -50,26 +53,35 @@ def get_product():
         return_status = 400
     else:
         req_product_name = req_product_name.lower()
+
+        req_product_hash = unpack("<IIII",md5(req_product_name.encode('utf-8')).digest())[0] % 2147483647
+        print('Hash: {}'.format(req_product_hash))
+
         children = zk.get_children("/nodes")
         num_nodes = len(children)
+        print('*********************************')
+        print(num_nodes)
+
         read_quorom, write_quorom = (num_nodes + 1) // 2, (num_nodes + 1) // 2
 
         crush_map, _ = zk.get("/crush_map")
         crush_map = json.loads(crush_map.decode("utf-8"))
         crush_object.parse(crush_map)
-
-        node_names = crush_object.map(rule="data", value=req_product_name, replication_count=read_quorom)
+        
+        node_names = crush_object.map(rule="data", value=req_product_hash, replication_count=read_quorom)
         nodes_info = {}
         for node_name in node_names:
             node_data, _ = zk.get("/nodes/{}".format(node_name))
             node_data = json.loads(node_data.decode("utf-8"))
+            nodes_info[node_name] = {}
             nodes_info[node_name]['ip_port'] = node_data
             ip = node_data['ip']
             port = int(node_data['flask_port'])
             req_url = 'http://' + ip + ':' + str(port) + '/product'
             resp = requests.get(req_url, params={'name' : req_product_name})
             prod_data = resp.json()
-            nodes_info[node_name]['prod_data'] = prod_data
+            print(prod_data)
+            nodes_info[node_name]['prod_data'] = prod_data['result'][0]
         
         versions = sorted([nodes_info[node_name]['prod_data']['version'] for node_name in node_names])
         latest_version = versions[-1]
@@ -80,7 +92,7 @@ def get_product():
         for node_name in node_names:
             node_info = nodes_info[node_name]
             if node_info['prod_data']['version'] == latest_version:
-                min_qty = min(min_qty, node_info['prod_data']['quantity'])
+                min_qty = min(min_qty, float(node_info['prod_data']['quantity']))
                 num_latest_count = num_latest_count + 1
 
         post_data = {'name' : req_product_name, 'quantity' : min_qty, 'version' : latest_version}        
@@ -88,9 +100,9 @@ def get_product():
         for node_name in node_names:
             node_info = nodes_info[node_name]
             if node_info['prod_data']['version'] != latest_version or node_info['prod_data']['quantity'] != min_qty:                    
-                requests.post(prod_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['port']), data = post_data)
+                requests.post(prod_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), data = post_data)
 
-
+        response_data['result'] = post_data
     
     response = app.response_class(response=json.dumps(response_data),
                                   status=return_status,
