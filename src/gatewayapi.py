@@ -4,75 +4,41 @@ from flask import Flask, request
 from constants import Constants
 from kazoo.client import KazooClient, KazooState
 from kazoo.exceptions import *
-import sys
-import os
-import time
-import random
-import logging
-import logging.handlers
-# import gevent
-# import zerorpc
-import collections
-import socket
-import json
+import json, math
 import requests
 from crush import Crush
 from gateway import Gateway
-
-FLASK_PORT_NO = 5000
 
 app = Flask(__name__)
 
 product_db = TinyDB('product_db.json')
 user_db = TinyDB('user_db.json')
+crush_object = Crush()
 
 zk = KazooClient(hosts='127.0.0.1:2181')
 zk.start()
-print(Gateway.constants.SERVER_PREFIX + Gateway.constants.MESSAGE_CONNECTED + "with 127.0.0.1:2181")	
 
 @app.route("/productslist", methods=['GET'])
 def products_list():
-    crush_object = Crush()
-    children = zk.get_children("/nodes")
-    # print("There are %s children with names %s" % (len(children), children))
-    num_nodes = len(children)
-    # print(num_nodes)
-    read_quorom, write_quorom = (num_nodes + 1) // 2, (num_nodes + 1) // 2
-
-    crush_map, _ = zk.get("/crush_map")
-    crush_map = json.loads(crush_map.decode("utf-8"))
-    # print(crush_map)
-    # print(type(crush_map))
-    crush_object.parse(crush_map)
-
-    # print('Mapping for 1234 => ', crush_object.map(rule="data", value=1234, replication_count=2))
-    node_names = crush_object.map(rule="data", value=1234, replication_count=read_quorom)
-
+    children = zk.get_children("/nodes")    
     combined_product_list = []
+    unique_products = []
 
     for node_name in children:
-        ip_port, _ = zk.get("/nodes/{}".format(node_name))
-        ip_port = json.loads(ip_port.decode("utf-8"))
-        ip = ip_port['ip']
-        port = int(ip_port['flask_port'])
-        print(ip)
-        print(port)
+        node_data, _ = zk.get("/nodes/{}".format(node_name))
+        node_data = json.loads(node_data.decode("utf-8"))
+        ip = node_data['ip']
+        port = int(node_data['flask_port'])
 
+        call_api = 'http://' + ip + ':' + str(port) + '/productslist'
+        list_of_products = json.loads(requests.get(call_api).text)
+        for prod in list_of_products:
+            if prod['name'] not in unique_products:
+                unique_products.append(prod['name'])
+                combined_product_list.append(prod)
 
-        # Idk why ip is geting printed as 127.0.1.1 instead of 127.0.0.1
-
-
-
-        call_api = 'https://' + ip + ':' + str(port) + '/productslist'
-        print(call_api)
-
-        # list_of_products = requests.get(call_api)
-        # print(list_of_products)
-        
-    # Replace these two lines and return JSONed combined_products_list instead
-    products_list = product_db.all()
-    return json.dumps(products_list)
-    
+    print(combined_product_list)
+    return json.dumps(combined_product_list)
 
 @app.route("/product", methods=["GET"])
 def get_product():
@@ -84,8 +50,6 @@ def get_product():
         return_status = 400
     else:
         req_product_name = req_product_name.lower()
-
-        crush_object = Crush()
         children = zk.get_children("/nodes")
         num_nodes = len(children)
         read_quorom, write_quorom = (num_nodes + 1) // 2, (num_nodes + 1) // 2
@@ -95,22 +59,39 @@ def get_product():
         crush_object.parse(crush_map)
 
         node_names = crush_object.map(rule="data", value=req_product_name, replication_count=read_quorom)
-
+        nodes_info = {}
         for node_name in node_names:
-            ip_port, _ = zk.get("/nodes/{}".format(node_name))
-            ip_port = json.loads(ip_port.decode("utf-8"))
-            ip = ip_port['ip']
-            port = int(ip_port['flask_port'])
-            print(ip)
-            print(port)
+            node_data, _ = zk.get("/nodes/{}".format(node_name))
+            node_data = json.loads(node_data.decode("utf-8"))
+            nodes_info[node_name]['ip_port'] = node_data
+            ip = node_data['ip']
+            port = int(node_data['flask_port'])
+            req_url = 'http://' + ip + ':' + str(port) + '/product'
+            resp = requests.get(req_url, params={'name' : req_product_name})
+            prod_data = resp.json()
+            nodes_info[node_name]['prod_data'] = prod_data
+        
+        versions = sorted([nodes_info[node_name]['prod_data']['version'] for node_name in node_names])
+        latest_version = versions[-1]
+        min_qty = math.inf
+        num_latest_count = 0
+        prod_post_url = 'http://{}:{}/product'
+        
+        for node_name in node_names:
+            node_info = nodes_info[node_name]
+            if node_info['prod_data']['version'] == latest_version:
+                min_qty = min(min_qty, node_info['prod_data']['quantity'])
+                num_latest_count = num_latest_count + 1
 
-            # Still work to do
+        post_data = {'name' : req_product_name, 'quantity' : min_qty, 'version' : latest_version}        
+        # If multiple latest versions with diff data => concurrent writes, take the minimum value
+        for node_name in node_names:
+            node_info = nodes_info[node_name]
+            if node_info['prod_data']['version'] != latest_version or node_info['prod_data']['quantity'] != min_qty:                    
+                requests.post(prod_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['port']), data = post_data)
 
 
-        # Product = Query()
-        # products_matching_query = product_db.search(Product.name == req_product_name)
-        # response_data['result'] = products_matching_query
-
+    
     response = app.response_class(response=json.dumps(response_data),
                                   status=return_status,
                                   mimetype='application/json')

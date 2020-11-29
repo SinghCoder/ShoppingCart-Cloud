@@ -13,8 +13,9 @@ import collections
 import os
 import socket
 import json
+import threading
 from crush import Crush
-from dbapi import DbApi
+from dbapi import DbAPI
 
 class DbNode():
 	
@@ -28,12 +29,9 @@ class DbNode():
 	constants = Constants()
 	zk = KazooClient(hosts='127.0.0.1:2181')
 	flask_port = None
-	dbapi = None		
 
 	def __init__(self):
 		super().__init__()
-
-		DbNode.flask_port = DbNode.dbapi.flask_port_no
 
 		DbNode.zk.add_listener(DbNode.connection_listener)
 		DbNode.zk.start()
@@ -47,6 +45,8 @@ class DbNode():
 	def add_myself_to_zookeeper(self):
 		hostname = socket.gethostname()
 		ip = socket.gethostbyname(hostname)
+		# ToDo: Remove this after testing
+		ip = '127.0.0.1'
 		try:
 			print(ip)
 			print(DbNode.flask_port)
@@ -71,13 +71,11 @@ class DbNode():
 		else:
 			print('running in state {}'.format(state))
 
-if __name__ == "__main__":
-	DbNode.dbapi = DbApi()
-	DbNode.dbapi.set_flask_port()
-
+if __name__ == "__main__":	
+	dbapi = DbAPI()
+	DbNode.flask_port = dbapi.flask_port
 	dbnode = DbNode()
-
-	DbNode.dbapi.run_app()
+	dbapi.start()
 
 	while True:
 		time.sleep(5)
