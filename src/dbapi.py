@@ -28,7 +28,7 @@ def get_product():
 			response_data['error'] = 'No such product found'
 			return_status = 400
 		else:
-			response_data['result'] = products_matching_query
+			response_data['result'] = products_matching_query[0]
 	response = app.response_class(response=json.dumps(response_data),
 								status=return_status,
 								mimetype='application/json')
@@ -51,7 +51,7 @@ def update_product():
 				response_data['result'] = 'Product inserted successfully'
 			else:
 				response_data['result'] = 'Product updated successfully'
-				product_db.update({'quantity' : int(matching_products[0]['quantity']) + int(quantity), 'version' : version }, Product.name == name)
+				product_db.update({'quantity' : int(quantity), 'version' : version }, Product.name == name)
 		else:
 			response_data['error'] = 'Some of the required parameters not found in the request.'
 			return_status = 400
