@@ -15,7 +15,7 @@ def products_list():
 @app.route("/product", methods=["GET"])
 def get_product():
 	req_product_name = request.args.get('name')
-	response_data = {'error' : 'No error', 'result' : ''}
+	response_data = {'error' : 'No error', 'result' : {}}
 	return_status = 200
 	if req_product_name is None:
 		response_data['error'] = 'Name not present in query'
@@ -71,7 +71,7 @@ def users_list():
 @app.route("/user", methods=["GET"])
 def get_user():
 	req_user_email = request.args.get('email')
-	response_data = {'error' : 'No error', 'result' : ''}
+	response_data = {'error' : 'No error', 'result' : {}}
 	return_status = 200
 	if req_user_email is None:
 		response_data['error'] = 'Email not present'
@@ -79,7 +79,8 @@ def get_user():
 	else:
 		User = Query()
 		users_matching_query = user_db.search(User.email == req_user_email)
-		response_data['result'] = users_matching_query[0]
+		if len(users_matching_query) != 0:
+			response_data['result'] = users_matching_query[0]
 	response = app.response_class(response=json.dumps(response_data),
 								status=return_status,
 								mimetype='application/json')
@@ -116,6 +117,7 @@ def update_user():
 @app.route("/addtocart", methods=["POST"])
 def add_to_cart():
 	user_data = request.get_json()
+	print(user_data)
 	response_data = {'error' : 'No error', 'result' : ''}
 	return_status = 200
 	if user_data is not None:
@@ -128,16 +130,16 @@ def add_to_cart():
 				response_data['error'] = 'User does not exists'
 				return_status = 403
 			else:                
-				if ('products' not in user_data) or (not isinstance(user_data['products'], list)):                    
+				if ('products' not in user_data):                    
 					response_data['error'] = 'Parameters passed incorrectly, please recheck'
 					return_status = 400
 				else:
 					products = user_data['products']
 					user_to_be_updated = matching_users[0]
 					cart = user_to_be_updated['cart']
-					for product in products:
-						product_name = product['name'].lower()
-						cart[product_name] = product['quantity']
+					for product, quantity in products.items():
+						product_name = product.lower()
+						cart[product_name] = quantity
 					user_db.update({'cart' : cart, 'version' : version}, User.email == email)
 					response_data['result'] = 'Items added to cart successfully'
 		else:

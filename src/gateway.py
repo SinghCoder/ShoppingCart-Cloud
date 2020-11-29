@@ -35,7 +35,7 @@ class Gateway():
 		try:
 			Gateway.zk = KazooClient(hosts='127.0.0.1:2181')
 			Gateway.zk.start()
-			print(Gateway.constants.SERVER_PREFIX + Gateway.constants.MESSAGE_CONNECTED + "with 127.0.0.1:2181")	
+			# print(Gateway.constants.SERVER_PREFIX + Gateway.constants.MESSAGE_CONNECTED + "with 127.0.0.1:2181")	
 			Gateway.zk.add_listener(self.connection_listener)
 			ChildrenWatch(Gateway.zk, '/nodes', func=Gateway.handle_dbnodes_change)
 		except Exception as e:
@@ -54,7 +54,7 @@ class Gateway():
 			node_data = {'ip' : ip}
 			Gateway.zk.ensure_path("/gateways")
 			Gateway.zk.create("/gateways/gateway",str.encode(json.dumps(node_data)), ephemeral=True, sequence=True)
-			print('Added a gateway node to zookeeper')
+			# print('Added a gateway node to zookeeper')
 		except Exception as e:
 			Gateway.print_error(e)
 
@@ -69,7 +69,7 @@ class Gateway():
 
 	@staticmethod
 	def handle_dbnodes_change(children):
-		print('Nodes cluster changed, current cluster configuration:')
+		# print('Nodes cluster changed, current cluster configuration:')
 		# for node in children:
 		# 	data,stat = Gateway.zk.get('/nodes/{}'.format(node))
 		# 	print('Node: {}'.format(node))
@@ -81,17 +81,17 @@ class Gateway():
 			crush_map_children.append(Gateway.constants.CRUSH_MAP_CHILDREN_NODE_FMT.format(i, -2-i, i, children[i]))
 		crush_map = json.loads(Gateway.constants.CRUSH_MAP_FMT.format(','.join(crush_map_children)))
 		# crush_map =	Gateway.constants.DEFAULT_CRUSH_MAP
-		print(crush_map)
+		# print(crush_map)
 		if len(crush_map['trees'][0]['children']) == 0:
 			return
 		Gateway.crush_object.parse(crush_map)
 		Gateway.zk.ensure_path('/crush_map')
 		Gateway.zk.set('/crush_map', str.encode(json.dumps(crush_map)))
-		print('Mapping for 1234 => ', Gateway.crush_object.map(rule="data", value=1234, replication_count=2))
+		# print('Mapping for 1234 => ', Gateway.crush_object.map(rule="data", value=1234, replication_count=2))
 
 if __name__ == "__main__":
 	gateway = Gateway()
 	while True:
 		time.sleep(5)
-		print('Watching changes in /nodes')
+		# print('Watching changes in /nodes')
 	# time.sleep(30)

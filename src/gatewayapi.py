@@ -25,6 +25,8 @@ def products_list():
 	combined_product_list = []
 	unique_products = []
 
+	products = {}
+
 	for node_name in children:
 		node_data, _ = zk.get("/nodes/{}".format(node_name))
 		node_data = json.loads(node_data.decode("utf-8"))
@@ -34,12 +36,20 @@ def products_list():
 		call_api = 'http://' + ip + ':' + str(port) + '/productslist'
 		list_of_products = json.loads(requests.get(call_api).text)
 		for prod in list_of_products:
-			if prod['name'] not in unique_products:
+			if prod['name'] not in products:
 				unique_products.append(prod['name'])
 				combined_product_list.append(prod)
+				products[prod['name']] = {}
+				products[prod['name']]['name'] = prod['name']
+				products[prod['name']]['quantity'] = prod['quantity']
+				products[prod['name']]['version'] = prod['version']
+			else:
+				if prod['version'] > products[prod['name']]['version']:
+					products[prod['name']]['version'] = prod['version']
+					products[prod['name']]['quantity'] = prod['quantity']
 
-	print(combined_product_list)
-	return json.dumps(combined_product_list)
+	# print(combined_product_list)
+	return json.dumps([item for item in products.values()])
 
 @app.route("/product", methods=["GET"])
 def get_product():
@@ -65,6 +75,7 @@ def get_product():
 		crush_object.parse(crush_map)
 		
 		node_names = crush_object.map(rule="data", value=req_product_hash, replication_count=read_quorom)
+		print(node_names)
 		nodes_info = {}
 		versions = []
 		for node_name in node_names:
@@ -77,7 +88,7 @@ def get_product():
 			req_url = 'http://' + ip + ':' + str(port) + '/product'
 			resp = requests.get(req_url, params={'name' : req_product_name})
 			prod_data = resp.json()
-			print(prod_data)
+			# print(prod_data)
 			nodes_info[node_name]['prod_data'] = prod_data['result']
 			if 'version' in prod_data['result']:
 				versions.append(prod_data['result']['version'])
@@ -94,14 +105,15 @@ def get_product():
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
 				if node_info['prod_data']['version'] == latest_version:
-					min_qty = min(min_qty, float(node_info['prod_data']['quantity']))
+					min_qty = min(min_qty, int(node_info['prod_data']['quantity']))
 			if latest_version != 0:
 				post_data = {'name' : req_product_name, 'quantity' : min_qty, 'version' : latest_version + 1}
 			# If multiple latest versions with diff data => concurrent writes, take the minimum value
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
-				if node_info['prod_data']['version'] != latest_version or node_info['prod_data']['quantity'] != min_qty:                    
-					requests.post(prod_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), data = post_data)
+				resp = requests.post(prod_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), json = post_data)
+				# print(node_info, min_qty)
+				print(resp.text)
 
 		response_data['result'] = post_data
 	
@@ -161,14 +173,15 @@ def update_product():
 				for node_name in node_names:
 					node_info = nodes_info[node_name]
 					if node_info['prod_data']['version'] == latest_version:
-						min_qty = min(min_qty, float(node_info['prod_data']['quantity']))
+						min_qty = min(min_qty, int(node_info['prod_data']['quantity']))
 
 			post_data = {'name' : name, 'quantity' : quantity + min_qty, 'version' : latest_version + 1}        
 			# If multiple latest versions with diff data => concurrent writes, take the minimum value
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
 				try:
-					requests.post(prod_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), data = post_data)
+					resp = requests.post(prod_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), json = post_data)
+					print(resp.text)
 				except Exception as e:
 					ip = node_info['ip_port']['ip']
 					print(f'{e.__str__()}: error occured while updating products info in node {node_name} (IP: {ip})')
@@ -188,8 +201,7 @@ def update_product():
 @app.route("/userslist", methods=['GET'])
 def users_list():
 	children = zk.get_children("/nodes")    
-	combined_user_list = []
-	unique_users = []
+	users = {}
 
 	for node_name in children:
 		node_data, _ = zk.get("/nodes/{}".format(node_name))
@@ -200,12 +212,18 @@ def users_list():
 		call_api = 'http://' + ip + ':' + str(port) + '/userslist'
 		list_of_users = json.loads(requests.get(call_api).text)
 		for user in list_of_users:
-			if user['email'] not in unique_users:
-				unique_users.append(user['email'])
-				combined_user_list.append(user)
+			if user['email'] not in users:
+				users[user['email']] = {}
+				users[user['email']]['email'] = user['email']
+				users[user['email']]['cart'] = user['cart']
+				users[user['email']]['version'] = user['version']
+			else:
+				if users[user['email']]['version'] < user['version']:
+					users[user['email']]['version'] = user['version']
+					users[user['email']]['cart'] = user['cart']
 
-	print(combined_user_list)
-	return json.dumps(combined_user_list)
+	# print(combined_user_list)
+	return json.dumps([user for user in users.values()])
 
 @app.route("/user", methods=["GET"])
 def get_user():
@@ -243,7 +261,7 @@ def get_user():
 			req_url = 'http://' + ip + ':' + str(port) + '/user'
 			resp = requests.get(req_url, params={'email' : req_user_email})
 			user_data = resp.json()
-			print(user_data)
+			# print(user_data)
 			nodes_info[node_name]['user_data'] = user_data['result']
 			if 'version' in user_data['result']:
 				versions.append(user_data['result']['version'])
@@ -261,16 +279,16 @@ def get_user():
 				if node_info['user_data']['version'] == latest_version:
 					for prod_name, prod_qty in node_info['user_data']['cart']:
 						if prod_name in new_cart:
-							new_cart[prod_name] = max(new_cart[prod_name], float(prod_qty))
+							new_cart[prod_name] = max(new_cart[prod_name], int(prod_qty))
 						else:
-							new_cart[prod_name] = float(prod_qty)
+							new_cart[prod_name] = int(prod_qty)
 			if latest_version != 0:
-				post_data = {'email' : req_user_email, 'cart' : new_cart, 'version' : latest_version + 1}
+				post_data = {'email' : req_user_email, 'products' : new_cart, 'version' : latest_version + 1}
 			# If multiple latest versions with diff data => concurrent writes, take the minimum value
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
-				if node_info['user_data']['version'] != latest_version:
-					requests.post(user_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), data = post_data)
+				resp = requests.post(user_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), json = post_data)
+				print(resp.text)
 
 		response_data['result'] = post_data
 	
@@ -328,7 +346,7 @@ def update_user():
 				for node_name in node_names:
 					node_info = nodes_info[node_name]
 					if node_info['user_data']['version'] == latest_version:
-						min_qty = min(min_qty, float(node_info['prod_data']['quantity']))
+						min_qty = min(min_qty, int(node_info['prod_data']['quantity']))
 
 			post_data = {'email' : email, 'version' : latest_version + 1}        
 			response_data['error'] = 'User updation successful'
@@ -336,7 +354,8 @@ def update_user():
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
 				try:
-					requests.post(user_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), data = post_data)
+					resp = requests.post(user_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), json = post_data)
+					print(resp.text)
 				except Exception as e:
 					ip = node_info['ip_port']['ip']
 					print(f'{e.__str__()}: error occured while updating products info in node {node_name} (IP: {ip})')
@@ -405,19 +424,22 @@ def add_to_cart():
 					if node_info['user_data']['version'] == latest_version:
 						for prod_name, prod_qty in node_info['user_data']['cart']:
 							if prod_name in new_cart:
-								new_cart[prod_name] = max(new_cart[prod_name], float(prod_qty))
+								new_cart[prod_name] = max(new_cart[prod_name], int(prod_qty))
 							else:
-								new_cart[prod_name] = float(prod_qty)
-			for product, quantity in products:
+								new_cart[prod_name] = int(prod_qty)
+			for product, quantity in products.items():
+				resp = requests.post("http://127.0.0.1:5000/product", json = {"name" : product, "quantity": -1*int(quantity)})
+				print(resp.text)
 				if product in new_cart:
-					new_cart[product] = new_cart[product] + float(quantity)
+					new_cart[product] = new_cart[product] + int(quantity)
 				else:
-					new_cart[product] = float(quantity)
-			post_data = {'email' : email, 'cart' : new_cart, 'version' : latest_version + 1}
+					new_cart[product] = int(quantity)
+			post_data = {'email' : email, 'products' : new_cart, 'version' : latest_version + 1}
 			# If multiple latest versions with diff data => concurrent writes, take the minimum value
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
-				requests.post(cart_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), data = post_data)
+				resp = requests.post(cart_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), json = post_data)
+				print(resp.text)
 		else:
 			response_data['error'] = 'No email field present'
 			return_status = 400

@@ -27,7 +27,6 @@ class DbNode():
 
 		DbNode.zk.add_listener(DbNode.connection_listener)
 		DbNode.zk.start()
-		print(DbNode.constants.SERVER_PREFIX + DbNode.constants.MESSAGE_CONNECTED + "with 127.0.0.1:2181")
 		self.add_myself_to_zookeeper()
 	
 	@staticmethod
@@ -40,12 +39,12 @@ class DbNode():
 		# ToDo: Remove this after testing
 		ip = '127.0.0.1'
 		try:
-			print(ip)
-			print(DbNode.flask_port)
+			# print(ip)
+			# print(DbNode.flask_port)
 			node_data = {'ip' : ip, 'flask_port' : DbNode.flask_port}
 			DbNode.zk.ensure_path("/nodes")
 			DbNode.zk.create("/nodes/node",str.encode(json.dumps(node_data)), ephemeral=True, sequence=True)
-			print('Added myself to /nodes, children list:')
+			# print('Added myself to /nodes, children list:')
 			child_node_list = DbNode.zk.get_children('/nodes')
 			if child_node_list:
 				print('subnode list:{}'.format(child_node_list))
