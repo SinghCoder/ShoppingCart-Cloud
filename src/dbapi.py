@@ -4,8 +4,8 @@ import json, socket
 
 app = Flask(__name__)
 flask_port_no = None
-product_db = TinyDB('product_db.json')
-user_db = TinyDB('user_db.json')
+product_db = None
+user_db = None
 
 @app.route("/productslist", methods=['GET'])
 def products_list():
@@ -137,10 +137,7 @@ def add_to_cart():
 					cart = user_to_be_updated['cart']
 					for product in products:
 						product_name = product['name'].lower()
-						if product_name in cart:
-							cart[product_name] = cart[product_name] + product['quantity']
-						else:
-							cart[product_name] = product['quantity']
+						cart[product_name] = product['quantity']
 					user_db.update({'cart' : cart, 'version' : version}, User.email == email)
 					response_data['result'] = 'Items added to cart successfully'
 		else:
@@ -165,9 +162,12 @@ def run_app():
 	app.run(port=flask_port_no)
 
 class DbAPI():
-	def __init__(self):
+	def __init__(self, node_name):
+		global product_db, user_db
 		set_flask_port()
 		self.flask_port = flask_port_no
+		product_db = TinyDB(node_name + '_product_db.json')
+		user_db = TinyDB(node_name + '_user_db.json')
 	
 	def start(self):		
 		run_app()

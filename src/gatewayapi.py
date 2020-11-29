@@ -14,8 +14,6 @@ from struct import unpack
 
 app = Flask(__name__)
 
-product_db = TinyDB('product_db.json')
-user_db = TinyDB('user_db.json')
 crush_object = Crush()
 
 zk = KazooClient(hosts='127.0.0.1:2181')
@@ -98,7 +96,7 @@ def get_product():
 				if node_info['prod_data']['version'] == latest_version:
 					min_qty = min(min_qty, float(node_info['prod_data']['quantity']))
 			if latest_version != 0:
-				post_data = {'name' : req_product_name, 'quantity' : min_qty, 'version' : latest_version}
+				post_data = {'name' : req_product_name, 'quantity' : min_qty, 'version' : latest_version + 1}
 			# If multiple latest versions with diff data => concurrent writes, take the minimum value
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
@@ -159,13 +157,11 @@ def update_product():
 				versions = sorted(versions)
 				latest_version = versions[-1]
 				min_qty = math.inf
-				num_latest_count = 0
 
 				for node_name in node_names:
 					node_info = nodes_info[node_name]
 					if node_info['prod_data']['version'] == latest_version:
 						min_qty = min(min_qty, float(node_info['prod_data']['quantity']))
-						num_latest_count = num_latest_count + 1
 
 			post_data = {'name' : name, 'quantity' : quantity + min_qty, 'version' : latest_version + 1}        
 			# If multiple latest versions with diff data => concurrent writes, take the minimum value
@@ -259,7 +255,6 @@ def get_user():
 		if len(versions) != 0:
 			versions = sorted(versions)
 			latest_version = versions[-1]
-			min_qty = math.inf
 			
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
@@ -270,7 +265,7 @@ def get_user():
 						else:
 							new_cart[prod_name] = float(prod_qty)
 			if latest_version != 0:
-				post_data = {'email' : req_user_email, 'quantity' : min_qty, 'version' : latest_version}
+				post_data = {'email' : req_user_email, 'cart' : new_cart, 'version' : latest_version + 1}
 			# If multiple latest versions with diff data => concurrent writes, take the minimum value
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
@@ -329,13 +324,11 @@ def update_user():
 				versions = sorted(versions)
 				latest_version = versions[-1]
 				min_qty = math.inf
-				num_latest_count = 0
 
 				for node_name in node_names:
 					node_info = nodes_info[node_name]
 					if node_info['user_data']['version'] == latest_version:
 						min_qty = min(min_qty, float(node_info['prod_data']['quantity']))
-						num_latest_count = num_latest_count + 1
 
 			post_data = {'email' : email, 'version' : latest_version + 1}        
 			response_data['error'] = 'User updation successful'
@@ -399,35 +392,32 @@ def add_to_cart():
 					nodes_info[node_name]['user_data'] = user_data['result']
 					versions.append(user_data['result']['version'])
 			
-			min_qty = 0
 			latest_version = 0
-			user_post_url = 'http://{}:{}/createuser'
-			# Existing user update
+			cart_post_url = 'http://{}:{}/addtocart'
+			new_cart = {}
+			post_data = {}
 			if len(versions) != 0:
 				versions = sorted(versions)
 				latest_version = versions[-1]
-				min_qty = math.inf
-				num_latest_count = 0
-
+				
 				for node_name in node_names:
 					node_info = nodes_info[node_name]
 					if node_info['user_data']['version'] == latest_version:
-						min_qty = min(min_qty, float(node_info['prod_data']['quantity']))
-						num_latest_count = num_latest_count + 1
-
-			post_data = {'email' : email, 'version' : latest_version + 1, 'products' : products}
-			response_data['result'] = 'Cart addition successful'
+						for prod_name, prod_qty in node_info['user_data']['cart']:
+							if prod_name in new_cart:
+								new_cart[prod_name] = max(new_cart[prod_name], float(prod_qty))
+							else:
+								new_cart[prod_name] = float(prod_qty)
+			for product, quantity in products:
+				if product in new_cart:
+					new_cart[product] = new_cart[product] + float(quantity)
+				else:
+					new_cart[product] = float(quantity)
+			post_data = {'email' : email, 'cart' : new_cart, 'version' : latest_version + 1}
 			# If multiple latest versions with diff data => concurrent writes, take the minimum value
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
-				try:
-					requests.post(user_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), data = post_data)
-				except Exception as e:
-					ip = node_info['ip_port']['ip']
-					print(f'{e.__str__()}: error occured while updating products info in node {node_name} (IP: {ip})')
-					return_status = 400
-					response_data['error'] = 'Cart updation unsuccessful'
-					break
+				requests.post(cart_post_url.format(node_info['ip_port']['ip'], node_info['ip_port']['flask_port']), data = post_data)
 		else:
 			response_data['error'] = 'No email field present'
 			return_status = 400

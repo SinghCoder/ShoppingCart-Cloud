@@ -2,19 +2,11 @@ from constants import Constants
 from kazoo.client import KazooClient, KazooState
 from kazoo.exceptions import *
 import sys
-import os
 import time
-import random
 import logging
 import logging.handlers
-# import gevent
-# import zerorpc
-import collections
-import os
 import socket
 import json
-import threading
-from crush import Crush
 from dbapi import DbAPI
 
 class DbNode():
@@ -72,7 +64,7 @@ class DbNode():
 			print('running in state {}'.format(state))
 
 if __name__ == "__main__":	
-	dbapi = DbAPI()
+	dbapi = DbAPI(sys.argv[1])
 	DbNode.flask_port = dbapi.flask_port
 	dbnode = DbNode()
 	dbapi.start()
