@@ -1,19 +1,11 @@
 Table User {
-    isAdmin boolean
     email varchar [primary key]
-    cartId varchar    
-}
-
-Table Cart {
-    id varchar [primary key]
-    product_ids array
+    cart array
+    version integer
 }
 
 Table Product {
-    id varchar [primary key]
-    name varchar
+    name varchar [primary key]
     quantity integer
+    version integer
 }
-
-Ref: User.cartId > Cart.id
-Ref: Cart.product_ids > Product.id
