@@ -1,1 +1,14 @@
-{"_default": {"1": {"email": "user3@gmail.com", "cart": {}, "version": 1}}}
+{
+    "_default": {
+        "1": {
+            "email": "user3@gmail.com",
+            "cart": {},
+            "version": 1
+        },
+        "2": {
+            "email": "demouser@gmail.com",
+            "cart": {},
+            "version": 1
+        }
+    }
+}

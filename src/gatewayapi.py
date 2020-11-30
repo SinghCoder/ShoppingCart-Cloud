@@ -277,7 +277,7 @@ def get_user():
 			for node_name in node_names:
 				node_info = nodes_info[node_name]
 				if node_info['user_data']['version'] == latest_version:
-					for prod_name, prod_qty in node_info['user_data']['cart']:
+					for prod_name, prod_qty in node_info['user_data']['cart'].items():
 						if prod_name in new_cart:
 							new_cart[prod_name] = max(new_cart[prod_name], int(prod_qty))
 						else:

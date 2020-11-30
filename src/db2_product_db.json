@@ -1,1 +1,24 @@
-{"_default": {"1": {"name": "apple", "quantity": 9, "version": 4}, "2": {"name": "mango", "quantity": 20, "version": 1}, "3": {"name": "pineapple", "quantity": 5, "version": 1}, "4": {"name": "orange", "quantity": 3, "version": 2}}}
+{
+    "_default": {
+        "1": {
+            "name": "apple",
+            "quantity": 9,
+            "version": 4
+        },
+        "2": {
+            "name": "mango",
+            "quantity": 20,
+            "version": 1
+        },
+        "3": {
+            "name": "pineapple",
+            "quantity": 5,
+            "version": 1
+        },
+        "4": {
+            "name": "orange",
+            "quantity": 2,
+            "version": 3
+        }
+    }
+}

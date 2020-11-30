@@ -1,0 +1,48 @@
+# HEre, we have deployed gateway, database nodes, 
+zookeeper all on same machine for now.
+# All the database nodes access their own database
+# Each database node launches its own flask api on an ephemeral port
+# Each node registers itself to zookeeper on staryt
+# Now we show existing contents of all three db nodes databases
+
+
+# Gateway API  is hosted on port 5000, let's access the contents
+
+# As you can see, for 3 db nodes we have launched, 
+# we have write and read quorums of 2 each
+
+Now we demonstrate concurrent writes
+
+So node 1 has orange as 2 quantity and version = 2, and node 2 has orange = 3 quantity and version =- = 2
+this is aconcuurent write, here we pick up the minimum quantityand update in bth
+
+the nodes
+
+so as u can see, the output came as latest version and min quantity
+of concurrent write values,. let' check the db
+
+
+Now we demonstrate concurrent writes for user cart
+
+so, in user 1 we have different values for orange and apple in both nodes
+having same version, so concurrent writes. let's extract the data froma pi
+
+here, we keep maximum of each product in cart
+
+as u can see, here apple and orange have become maximum of all carts with
+latest version
+
+New user can be added by sending a post request to gateway
+As u can see, corresponding to write quorum of 2, we got user data in 2 nodes
+
+The crush map is updated dynamicallly as and when nodes are added and 
+removed
+As you can see on write, the current configuration is when there 
+is no database node added.
+
+Now this is the map when a database node has been added to the cluster
+
+Now we will remove a node
+Now we will remove all db nodes
+
+as u can see, crush map has aghain become empty

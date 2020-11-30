@@ -87,6 +87,10 @@
       - Performs read-repair if required, takes the `maximum of quantities of each product in cart among all the latest versions`
       - Calls `POST /addtocart` on each node found from CRUSH hash function with the latest data
 
+## Demo
+
+Access the demo video [here](Demo.mp4)
+
 ## Group Members
 
 | Name                | ID            |
