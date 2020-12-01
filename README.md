@@ -87,6 +87,9 @@
       - Performs read-repair if required, takes the `maximum of quantities of each product in cart among all the latest versions`
       - Calls `POST /addtocart` on each node found from CRUSH hash function with the latest data
 
+## How to run
+
+- `docker-compose up -d --scale dbnode=3`
 ## Demo
 
 Access the demo video [here](Demo.mp4)
