@@ -22,7 +22,7 @@ class Gateway():
 	
 	logger = logging.getLogger('gatewaylogger')
 	logger.setLevel(logging.DEBUG)
-	ch = logging.FileHandler('../logs/gateway.log', 'w')
+	ch = logging.FileHandler('gateway.log', 'w')
 	formatter = logging.Formatter('[%(asctime)s] %(message)s %(funcName)s:%(lineno)d')
 	ch.setFormatter(formatter)
 	logger.addHandler(ch)
@@ -33,7 +33,7 @@ class Gateway():
 	def __init__(self):
 		super().__init__()		
 		try:
-			Gateway.zk = KazooClient(hosts='127.0.0.1:2181')
+			Gateway.zk = KazooClient(hosts='172.25.0.101:2181')
 			Gateway.zk.start()
 			# print(Gateway.constants.SERVER_PREFIX + Gateway.constants.MESSAGE_CONNECTED + "with 127.0.0.1:2181")	
 			Gateway.zk.add_listener(self.connection_listener)

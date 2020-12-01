@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 crush_object = Crush()
 
-zk = KazooClient(hosts='127.0.0.1:2181')
+zk = KazooClient(hosts='172.25.0.101:2181')
 zk.start()
 
 @app.route("/productslist", methods=['GET'])
@@ -451,4 +451,4 @@ def add_to_cart():
 								mimetype='application/json')
 	return response
 
-app.run(debug = True) 
+app.run(host="0.0.0.0", debug = True) 

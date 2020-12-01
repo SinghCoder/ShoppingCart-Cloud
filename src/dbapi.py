@@ -161,15 +161,15 @@ def set_flask_port():
 	sock.close()
 
 def run_app():
-	app.run(port=flask_port_no)
+	app.run(host="0.0.0.0", port=flask_port_no)
 
 class DbAPI():
-	def __init__(self, node_name):
+	def __init__(self):
 		global product_db, user_db
 		set_flask_port()
 		self.flask_port = flask_port_no
-		product_db = TinyDB(node_name + '_product_db.json')
-		user_db = TinyDB(node_name + '_user_db.json')
+		product_db = TinyDB('product_db.json')
+		user_db = TinyDB('user_db.json')
 	
 	def start(self):		
 		run_app()

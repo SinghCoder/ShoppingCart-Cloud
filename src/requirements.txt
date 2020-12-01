@@ -1,0 +1,4 @@
+crush==1.0.35
+Flask==1.1.2
+kazoo==2.8.0
+tinydb==4.3.0

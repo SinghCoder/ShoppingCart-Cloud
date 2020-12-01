@@ -13,13 +13,13 @@ class DbNode():
 	
 	logger = logging.getLogger('dbnodelogger')
 	logger.setLevel(logging.DEBUG)
-	ch = logging.FileHandler('../logs/dbnode.log', 'w')
+	ch = logging.FileHandler('dbnode.log', 'w')
 	formatter = logging.Formatter('[%(asctime)s] %(message)s %(funcName)s:%(lineno)d')
 	ch.setFormatter(formatter)
 	logger.addHandler(ch)
 	
 	constants = Constants()
-	zk = KazooClient(hosts='127.0.0.1:2181')
+	zk = KazooClient(hosts='172.25.0.101:2181')
 	flask_port = None
 
 	def __init__(self):
@@ -37,7 +37,7 @@ class DbNode():
 		hostname = socket.gethostname()
 		ip = socket.gethostbyname(hostname)
 		# ToDo: Remove this after testing
-		ip = '127.0.0.1'
+		# ip = '127.0.0.1'
 		try:
 			# print(ip)
 			# print(DbNode.flask_port)
@@ -63,7 +63,7 @@ class DbNode():
 			print('running in state {}'.format(state))
 
 if __name__ == "__main__":	
-	dbapi = DbAPI(sys.argv[1])
+	dbapi = DbAPI()
 	DbNode.flask_port = dbapi.flask_port
 	dbnode = DbNode()
 	dbapi.start()
