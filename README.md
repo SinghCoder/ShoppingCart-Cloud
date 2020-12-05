@@ -1,5 +1,11 @@
 # Shopping Cart API Assignment
 
+## Overview
+
+- A storage system for Shopping Cart data, and an API to access the data written purely in Python
+- Features developed are Leaderless replication, data partitioning, eventual consistency
+- Used CRUSH hash function for mapping, Zookeeper for coordination, read-repair using version vectors for consistency, Flask to build the API
+
 ## Problem Statement Breakdown
 
 - Architecture
